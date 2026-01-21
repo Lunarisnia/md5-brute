@@ -11,44 +11,33 @@ import (
 )
 
 func main() {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
 
-	correctNumber := 37
+	correctNumber := 5
 
-	prlWorkers := workers.New()
+	prlWorkers := workers.New().SetWorkerCount(10)
 
-	counter := make(chan int)
-	found := make(chan bool)
 	prlWorkers = prlWorkers.SetTask(func() error {
 		for {
-			time.Sleep(1 * time.Second)
-			counter <- rand.Intn(100)
-			fmt.Println("Guessing")
-			if <-found {
-				break
+			select {
+			case <-ctx.Done():
+				return nil
+			default:
+				time.Sleep(1 * time.Second)
+				guess := rand.Intn(10)
+				fmt.Println("GUESSING:", guess)
+				if guess == correctNumber {
+					cancel()
+				}
 			}
 		}
-
-		return nil
 	})
-	prlWorkers = prlWorkers.SetWorkerCount(3)
-	go err := prlWorkers.Run(ctx)
+	err := prlWorkers.Run(ctx)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	// wCounter := 0
-	// for {
-	// 	<-counter
-	// 	wCounter++
-	// 	fmt.Println("Task Finished!")
-	// 	if wCounter == 3 {
-	// 		os.Exit(0)
-	// 	}
-	// }
-
 	// text := "These pretzels are making me thirsty."
-	//
 	//	// Approach 1: Using md5.Sum() for simple, one-off hashing
 	//	hasherBytes := md5.Sum([]byte(text))
 	//	// Convert the [16]byte array to a hexadecimal string
