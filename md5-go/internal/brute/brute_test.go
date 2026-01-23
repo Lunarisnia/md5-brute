@@ -13,6 +13,7 @@ func Test_Crack(t *testing.T) {
 
 		text := "bar"
 		hashedText := hasher.MD5(text)
+		fmt.Println(hasher.MD5("aa"))
 		bruteForcer = bruteForcer.SetGoalTest(func(guess string) bool {
 			if hasher.MD5(guess) == hashedText {
 				fmt.Println("Original Hash: ", hashedText)

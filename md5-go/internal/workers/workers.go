@@ -6,7 +6,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type Task func() error
+type Task func(id uint) error
 
 type Workers interface {
 	SetWorkerCount(count uint) Workers
@@ -35,10 +35,10 @@ func (w workers) SetTask(task Task) Workers {
 
 func (w workers) Run(ctx context.Context) error {
 	eg, ctx := errgroup.WithContext(ctx)
-	for range w.workerCount {
+	for i := range w.workerCount {
 		eg.Go(func() error {
 			wk := worker{}
-			err := wk.Execute(w.task)
+			err := wk.Execute(i, w.task)
 			return err
 		})
 	}

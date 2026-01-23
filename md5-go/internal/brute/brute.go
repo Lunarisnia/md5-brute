@@ -1,6 +1,7 @@
 package brute
 
 import (
+	"context"
 	"errors"
 )
 
@@ -9,16 +10,24 @@ type GoalTest func(guess string) bool
 type Brute interface {
 	SetTextLength(length uint) Brute
 	SetGoalTest(goalTest GoalTest) Brute
-	Crack() (string, error)
+	SetStartRune(start rune) Brute
+	SetEndRune(end rune) Brute
+	Crack(ctx context.Context) (string, error)
 }
 
 type brute struct {
 	goalTest   GoalTest
 	textLength uint
+
+	startRune rune
+	endRune   rune
 }
 
 func New() Brute {
-	return &brute{}
+	return &brute{
+		startRune: rune(32),
+		endRune:   rune(126),
+	}
 }
 
 func (b brute) SetGoalTest(goalTest GoalTest) Brute {
@@ -28,6 +37,16 @@ func (b brute) SetGoalTest(goalTest GoalTest) Brute {
 
 func (b brute) SetTextLength(length uint) Brute {
 	b.textLength = length
+	return b
+}
+
+func (b brute) SetStartRune(start rune) Brute {
+	b.startRune = start
+	return b
+}
+
+func (b brute) SetEndRune(end rune) Brute {
+	b.endRune = end
 	return b
 }
 
@@ -41,11 +60,12 @@ func (b brute) SetTextLength(length uint) Brute {
 // NOTE: AAA > AAB > ABA > ABB > BAA > BAB > BBB
 // NOTE: AA > AB > BA > BB
 // NOTE: Crack the password until the goal test return true
-func (b brute) Crack() (string, error) {
+func (b brute) Crack(ctx context.Context) (string, error) {
 	// NOTE: Lowercase: 97-122 - Uppercase: 65-90
 	// NOTE: 32(or 33)-126: https://www.w3schools.com/charsets/ref_utf_basic_latin.asp
-	initialRune := rune(33)
-	lastRune := rune(126)
+	initialRune := b.startRune
+	lastRune := b.endRune
+	// fmt.Println(initialRune, lastRune)
 
 	var headNode *Node
 	var tailNode *Node
@@ -64,30 +84,35 @@ func (b brute) Crack() (string, error) {
 	}
 
 	for {
-		packed := headNode.Pack()
-		result := b.goalTest(packed)
-		if result {
-			return packed, nil
-		}
-		tailNode.Increment()
-
-		same := true
-		for _, r := range headNode.Pack() {
-			if r != lastRune {
-				same = false
-			}
-		}
-		if same {
+		select {
+		case <-ctx.Done():
+			return "", errors.New("stopped")
+		default:
 			packed := headNode.Pack()
 			result := b.goalTest(packed)
 			if result {
 				return packed, nil
 			}
-			break
+			// fmt.Println(packed)
+			tailNode.Increment()
+
+			same := true
+			for _, r := range headNode.Pack() {
+				if r != lastRune {
+					same = false
+				}
+			}
+			if same {
+				packed := headNode.Pack()
+				result := b.goalTest(packed)
+				if result {
+					return packed, nil
+				}
+				return "", errors.New("not found")
+			}
+
 		}
 	}
-
-	return "", errors.New("not found")
 }
 
 type Node struct {
