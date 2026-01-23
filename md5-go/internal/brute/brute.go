@@ -83,31 +83,31 @@ func (b brute) Crack(ctx context.Context) (string, error) {
 		}
 	}
 
+	packed := headNode.Pack()
+	result := b.goalTest(packed)
+	if result {
+		return packed, nil
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
 			return "", errors.New("stopped")
 		default:
+			tailNode.Increment()
 			packed := headNode.Pack()
 			result := b.goalTest(packed)
 			if result {
 				return packed, nil
 			}
-			// fmt.Println(packed)
-			tailNode.Increment()
 
 			same := true
-			for _, r := range headNode.Pack() {
+			for _, r := range packed {
 				if r != lastRune {
 					same = false
 				}
 			}
 			if same {
-				packed := headNode.Pack()
-				result := b.goalTest(packed)
-				if result {
-					return packed, nil
-				}
 				return "", errors.New("not found")
 			}
 
