@@ -65,7 +65,7 @@ func (b brute) Crack() (string, error) {
 
 	for {
 		packed := headNode.Pack()
-		result := b.goalTest(headNode.Pack())
+		result := b.goalTest(packed)
 		if result {
 			return packed, nil
 		}
