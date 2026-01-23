@@ -1,6 +1,7 @@
 package brute
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -22,7 +23,7 @@ func Test_Crack(t *testing.T) {
 			return hasher.MD5(guess) == hashedText
 		}).SetTextLength(uint(len(text)))
 
-		result, err := bruteForcer.Crack()
+		result, err := bruteForcer.Crack(context.Background())
 		if err != nil {
 			t.Error(err)
 		}
